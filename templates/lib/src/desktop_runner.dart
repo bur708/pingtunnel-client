@@ -493,12 +493,33 @@ class DesktopRunner {
     return 'pingtunnel exited before startup. Check configuration and logs.';
   }
 
+  // Flags whose following argv value is a secret and must never reach the
+  // (UI-visible, SelectableText-rendered) log panel in cleartext.
+  static const _secretArgFlags = {'-key', '-encrypt-key'};
+
+  String _redactArgsForLog(List<String> args) {
+    final out = <String>[];
+    var redactNext = false;
+    for (final arg in args) {
+      if (redactNext) {
+        out.add('***');
+        redactNext = false;
+        continue;
+      }
+      out.add(arg);
+      if (_secretArgFlags.contains(arg)) {
+        redactNext = true;
+      }
+    }
+    return out.join(' ');
+  }
+
   Future<Process> _startProcess(
     String bin,
     List<String> args, {
     required String label,
   }) async {
-    logBuffer.add('Starting $label: $bin ${args.join(' ')}');
+    logBuffer.add('Starting $label: $bin ${_redactArgsForLog(args)}');
     final process = await Process.start(bin, args);
     process.stdout.transform(utf8.decoder).listen((data) {
       for (final line in LineSplitter.split(data)) {

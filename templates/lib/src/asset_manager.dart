@@ -8,9 +8,20 @@ class AssetManager {
   final String appFolderName;
 
   Future<Directory> _appDir() async {
+    // No fallback to Directory.systemTemp: that's a shared, world-writable
+    // directory (/tmp) on Linux/macOS, so a predictable path under it lets
+    // any other local user pre-place a file there before this app ever
+    // runs - installAsset() below trusts an existing file outright, which
+    // would hand that user code execution under this app's identity.
     final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-    final base = home ?? Directory.systemTemp.path;
-    final dir = Directory(_join([base, appFolderName]));
+    if (home == null || home.isEmpty) {
+      throw StateError(
+        'Cannot determine a per-user home directory (HOME/USERPROFILE is '
+        'not set); refusing to install binaries into a shared temp '
+        'directory.',
+      );
+    }
+    final dir = Directory(_join([home, appFolderName]));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }

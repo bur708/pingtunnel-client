@@ -10,7 +10,7 @@ fun buildPingtunnelArgs(
         "-type",
         "client",
         "-l",
-        ":$localSocksPort",
+        "127.0.0.1:$localSocksPort",
         "-s",
         config.serverAddress(),
         "-sock5",
