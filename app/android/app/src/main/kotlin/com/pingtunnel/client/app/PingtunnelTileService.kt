@@ -19,6 +19,20 @@ class PingtunnelTileService : TileService() {
     override fun onClick() {
         super.onClick()
 
+        // Quick Settings tiles are reachable from the lock screen (swipe
+        // down twice) without a PIN/pattern/biometric prompt. Without this
+        // gate, anyone with brief physical access to a locked, unattended
+        // phone could start/stop the tunnel using the victim's saved
+        // key/server. unlockAndRun defers the action until the device is
+        // unlocked, showing the system keyguard prompt if needed.
+        if (isLocked) {
+            unlockAndRun { performClick() }
+        } else {
+            performClick()
+        }
+    }
+
+    private fun performClick() {
         val wasRunning = ServiceState.isAnyRunning()
         if (wasRunning) {
             stopServices()

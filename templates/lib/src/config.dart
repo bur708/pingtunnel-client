@@ -208,6 +208,16 @@ class TunnelConfig {
       );
     }
 
+    final interfaceName = _validateIfaceName(
+      params['iface'] ?? params['interface'],
+      'iface',
+    );
+    final tunDevice = _validateIfaceName(
+      params['tun'] ?? params['tun_device'],
+      'tun',
+    );
+    final dns = _validateDns(params['dns']);
+
     return TunnelConfig(
       serverHost: host,
       serverPort: serverPort,
@@ -216,13 +226,41 @@ class TunnelConfig {
       mode: mode,
       encryptMode: encryptMode,
       encryptKey: encryptKey,
-      interfaceName: params['iface'] ?? params['interface'],
-      tunDevice: params['tun'] ?? params['tun_device'],
-      dns: params['dns'],
+      interfaceName: interfaceName,
+      tunDevice: tunDevice,
+      dns: dns,
       proxyPerAppPackages: proxyPerAppPackages,
       reliabilityMode: reliabilityMode,
       fecDataShards: fecDataShards,
       fecParityShards: fecParityShards,
     );
+  }
+
+  // interfaceName/tunDevice/dns all flow, unmodified, as argv/script
+  // parameters into privileged code paths: a pkexec'd root shell script on
+  // Linux (vpn_up.sh, which unquoted-expands DNS_SERVERS on purpose so
+  // resolvectl sees one argument per address) and a PowerShell script on
+  // Windows (vpn_up.ps1, netsh). A `pingtunnel://` URI is untrusted input
+  // (pasted, imported, or deep-linked), so reject anything outside a safe
+  // character set here rather than relying on the scripts to quote
+  // correctly - this closes off argument injection into those privileged
+  // commands regardless of how the scripts end up handling the value.
+  static final _ifaceNamePattern = RegExp(r'^[A-Za-z0-9_.:-]{1,15}$');
+  static final _dnsListPattern = RegExp(r'^[0-9a-fA-F.:]+(,\s*[0-9a-fA-F.:]+)*$');
+
+  static String? _validateIfaceName(String? value, String fieldName) {
+    if (value == null || value.isEmpty) return value;
+    if (!_ifaceNamePattern.hasMatch(value)) {
+      throw FormatException('Invalid $fieldName: $value');
+    }
+    return value;
+  }
+
+  static String? _validateDns(String? value) {
+    if (value == null || value.isEmpty) return value;
+    if (!_dnsListPattern.hasMatch(value)) {
+      throw FormatException('Invalid dns: $value');
+    }
+    return value;
   }
 }

@@ -516,14 +516,17 @@ class _ConnectionListPageState extends State<ConnectionListPage>
   Future<void> _addFromClipboard() async {
     final data = await Clipboard.getData('text/plain');
     final text = data?.text?.trim();
-    if (text == null || text.isEmpty) {
-      final result = await _showAddDialog();
-      if (result != null && result.isNotEmpty) {
-        _addEntryFromUri(result);
-      }
-      return;
+    // Always route through the dialog, pre-filled with the clipboard
+    // content when present, rather than adding it directly: a
+    // pingtunnel:// URI on the clipboard could come from another app, a
+    // compromised clipboard manager, or a "copy this to fix your
+    // connection" phishing message, and the old behavior saved it to the
+    // persisted connection list with no chance to review the target
+    // host/key first.
+    final result = await _showAddDialog(initial: text);
+    if (result != null && result.isNotEmpty) {
+      _addEntryFromUri(result);
     }
-    _addEntryFromUri(text);
   }
 
   Future<String?> _showAddDialog({
