@@ -186,6 +186,21 @@ class DesktopRunner {
       args.addAll(['-key', config.key.toString()]);
     }
 
+    switch (config.reliabilityMode) {
+      case ReliabilityMode.fec:
+        args.addAll([
+          '-fec',
+          '-fec-data',
+          config.fecDataShards.toString(),
+          '-fec-parity',
+          config.fecParityShards.toString(),
+        ]);
+      case ReliabilityMode.kcp:
+        args.add('-kcp');
+      case ReliabilityMode.none:
+        break;
+    }
+
     return _startProcess(bin, args, label: 'pingtunnel');
   }
 

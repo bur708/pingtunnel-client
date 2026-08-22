@@ -27,6 +27,9 @@ object LastTunnelConfigStore {
                 Constants.EXTRA_PROXY_PER_APP_PACKAGES,
                 config.proxyPerAppPackages.toSet()
             )
+            .putString(Constants.EXTRA_RELIABILITY_MODE, config.reliabilityMode)
+            .putInt(Constants.EXTRA_FEC_DATA_SHARDS, config.fecDataShards)
+            .putInt(Constants.EXTRA_FEC_PARITY_SHARDS, config.fecParityShards)
             .apply()
     }
 
@@ -55,6 +58,9 @@ object LastTunnelConfigStore {
             ?.filter { it.isNotEmpty() }
             ?.distinct()
             ?: emptyList()
+        val reliabilityMode = prefs.getString(Constants.EXTRA_RELIABILITY_MODE, "none") ?: "none"
+        val fecDataShards = prefs.getInt(Constants.EXTRA_FEC_DATA_SHARDS, 10)
+        val fecParityShards = prefs.getInt(Constants.EXTRA_FEC_PARITY_SHARDS, 3)
 
         if (encryptMode.isNullOrBlank() && key == null) {
             return null
@@ -71,7 +77,10 @@ object LastTunnelConfigStore {
             interfaceName = iface,
             tunDevice = tun,
             dns = dns,
-            proxyPerAppPackages = proxyPerAppPackages
+            proxyPerAppPackages = proxyPerAppPackages,
+            reliabilityMode = reliabilityMode,
+            fecDataShards = fecDataShards,
+            fecParityShards = fecParityShards
         )
     }
 }

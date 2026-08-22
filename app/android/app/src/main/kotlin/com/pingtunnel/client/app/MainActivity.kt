@@ -212,6 +212,9 @@ class MainActivity : FlutterActivity() {
             Constants.EXTRA_PROXY_PER_APP_PACKAGES,
             ArrayList(config.proxyPerAppPackages)
         )
+        putExtra(Constants.EXTRA_RELIABILITY_MODE, config.reliabilityMode)
+        putExtra(Constants.EXTRA_FEC_DATA_SHARDS, config.fecDataShards)
+        putExtra(Constants.EXTRA_FEC_PARITY_SHARDS, config.fecParityShards)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {

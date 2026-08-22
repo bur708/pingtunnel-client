@@ -1,5 +1,10 @@
 enum TunnelMode { proxy, vpn, proxyPerApp }
 
+/// The pingtunnel binary's two reliability layers are alternatives, not
+/// composable: -kcp and -fec cannot both be passed on the same
+/// invocation. `none` matches today's default (plain resend logic only).
+enum ReliabilityMode { none, fec, kcp }
+
 class TunnelConfig {
   TunnelConfig({
     required this.serverHost,
@@ -13,6 +18,9 @@ class TunnelConfig {
     this.tunDevice,
     this.dns,
     this.proxyPerAppPackages = const <String>[],
+    this.reliabilityMode = ReliabilityMode.none,
+    this.fecDataShards = 10,
+    this.fecParityShards = 3,
   });
 
   final String serverHost;
@@ -26,6 +34,9 @@ class TunnelConfig {
   final String? tunDevice;
   final String? dns;
   final List<String> proxyPerAppPackages;
+  final ReliabilityMode reliabilityMode;
+  final int fecDataShards;
+  final int fecParityShards;
 
   TunnelConfig copyWith({
     String? serverHost,
@@ -39,6 +50,9 @@ class TunnelConfig {
     String? tunDevice,
     String? dns,
     List<String>? proxyPerAppPackages,
+    ReliabilityMode? reliabilityMode,
+    int? fecDataShards,
+    int? fecParityShards,
   }) {
     return TunnelConfig(
       serverHost: serverHost ?? this.serverHost,
@@ -54,6 +68,9 @@ class TunnelConfig {
       proxyPerAppPackages: proxyPerAppPackages != null
           ? List<String>.from(proxyPerAppPackages)
           : this.proxyPerAppPackages,
+      reliabilityMode: reliabilityMode ?? this.reliabilityMode,
+      fecDataShards: fecDataShards ?? this.fecDataShards,
+      fecParityShards: fecParityShards ?? this.fecParityShards,
     );
   }
 
@@ -91,6 +108,13 @@ class TunnelConfig {
       'tunDevice': tunDevice,
       'dns': dns,
       'proxyPerAppPackages': proxyPerAppPackages,
+      'reliabilityMode': switch (reliabilityMode) {
+        ReliabilityMode.none => 'none',
+        ReliabilityMode.fec => 'fec',
+        ReliabilityMode.kcp => 'kcp',
+      },
+      'fecDataShards': fecDataShards,
+      'fecParityShards': fecParityShards,
     };
   }
 
@@ -166,6 +190,24 @@ class TunnelConfig {
       throw const FormatException('Key must be an integer');
     }
 
+    final reliabilityValue = (params['reliability'] ?? params['kcp'] ?? '')
+        .toLowerCase();
+    final reliabilityMode = switch (reliabilityValue) {
+      'fec' => ReliabilityMode.fec,
+      'kcp' || '1' => ReliabilityMode.kcp,
+      _ => ReliabilityMode.none,
+    };
+    final fecDataShards =
+        int.tryParse(params['fec_data'] ?? params['fec-data'] ?? '') ?? 10;
+    final fecParityShards =
+        int.tryParse(params['fec_parity'] ?? params['fec-parity'] ?? '') ?? 3;
+    if (reliabilityMode == ReliabilityMode.fec &&
+        (fecDataShards < 1 || fecParityShards < 1)) {
+      throw const FormatException(
+        'fec_data and fec_parity must be positive integers',
+      );
+    }
+
     return TunnelConfig(
       serverHost: host,
       serverPort: serverPort,
@@ -178,6 +220,9 @@ class TunnelConfig {
       tunDevice: params['tun'] ?? params['tun_device'],
       dns: params['dns'],
       proxyPerAppPackages: proxyPerAppPackages,
+      reliabilityMode: reliabilityMode,
+      fecDataShards: fecDataShards,
+      fecParityShards: fecParityShards,
     );
   }
 }

@@ -31,5 +31,16 @@ fun buildPingtunnelArgs(
         args.add(key.toString())
     }
 
+    when (config.reliabilityMode) {
+        "fec" -> {
+            args.add("-fec")
+            args.add("-fec-data")
+            args.add(config.fecDataShards.toString())
+            args.add("-fec-parity")
+            args.add(config.fecParityShards.toString())
+        }
+        "kcp" -> args.add("-kcp")
+    }
+
     return args
 }

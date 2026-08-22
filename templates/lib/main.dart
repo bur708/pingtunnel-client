@@ -179,6 +179,17 @@ String buildConnectionUri(TunnelConfig config) {
     final sortedPackages = [...config.proxyPerAppPackages]..sort();
     params['apps'] = sortedPackages.join(',');
   }
+  if (config.reliabilityMode != ReliabilityMode.none) {
+    params['reliability'] = switch (config.reliabilityMode) {
+      ReliabilityMode.fec => 'fec',
+      ReliabilityMode.kcp => 'kcp',
+      ReliabilityMode.none => 'none',
+    };
+    if (config.reliabilityMode == ReliabilityMode.fec) {
+      params['fec_data'] = config.fecDataShards.toString();
+      params['fec_parity'] = config.fecParityShards.toString();
+    }
+  }
   return Uri(
     scheme: 'pingtunnel',
     host: config.serverHost,
@@ -1166,8 +1177,11 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
   late final TextEditingController _keyController;
   late final TextEditingController _localPortController;
   late final TextEditingController _encryptKeyController;
+  late final TextEditingController _fecDataController;
+  late final TextEditingController _fecParityController;
   late TunnelMode _mode;
   late String _encryptMode;
+  late ReliabilityMode _reliabilityMode;
   late List<String> _proxyPerAppPackages;
   bool _loadingProxyPerAppApps = false;
 
@@ -1187,12 +1201,21 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
     _encryptKeyController = TextEditingController(
       text: _entry.config.encryptKey ?? '',
     );
+    _fecDataController = TextEditingController(
+      text: _entry.config.fecDataShards.toString(),
+    );
+    _fecParityController = TextEditingController(
+      text: _entry.config.fecParityShards.toString(),
+    );
     _encryptMode = _entry.config.encryptMode ?? 'none';
+    _reliabilityMode = _entry.config.reliabilityMode;
     _proxyPerAppPackages = [..._entry.config.proxyPerAppPackages]..sort();
     _hostController.addListener(_markDirty);
     _keyController.addListener(_markDirty);
     _localPortController.addListener(_markDirty);
     _encryptKeyController.addListener(_markDirty);
+    _fecDataController.addListener(_markDirty);
+    _fecParityController.addListener(_markDirty);
     _startUiTimer();
   }
 
@@ -1203,6 +1226,8 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
     _keyController.dispose();
     _localPortController.dispose();
     _encryptKeyController.dispose();
+    _fecDataController.dispose();
+    _fecParityController.dispose();
     super.dispose();
   }
 
@@ -1550,6 +1575,14 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
       return null;
     }
 
+    final fecDataShards = int.tryParse(_fecDataController.text.trim()) ?? 0;
+    final fecParityShards =
+        int.tryParse(_fecParityController.text.trim()) ?? 0;
+    if (_reliabilityMode == ReliabilityMode.fec &&
+        (fecDataShards < 1 || fecParityShards < 1)) {
+      return null;
+    }
+
     final effectiveKey = _encryptMode == 'none' ? key : null;
     final sortedProxyPerAppPackages = [..._proxyPerAppPackages]..sort();
 
@@ -1562,6 +1595,9 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
       encryptMode: encryptMode,
       encryptKey: encryptKey,
       proxyPerAppPackages: sortedProxyPerAppPackages,
+      reliabilityMode: _reliabilityMode,
+      fecDataShards: fecDataShards == 0 ? 10 : fecDataShards,
+      fecParityShards: fecParityShards == 0 ? 3 : fecParityShards,
     );
   }
 
@@ -1625,6 +1661,8 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
               keyController: _keyController,
               localPortController: _localPortController,
               encryptKeyController: _encryptKeyController,
+              fecDataController: _fecDataController,
+              fecParityController: _fecParityController,
               mode: _mode,
               onModeChanged: (value) {
                 if (_isActive) return;
@@ -1638,6 +1676,14 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
                 if (_isActive) return;
                 setState(() {
                   _encryptMode = value;
+                  _dirty = true;
+                });
+              },
+              reliabilityMode: _reliabilityMode,
+              onReliabilityModeChanged: (value) {
+                if (_isActive) return;
+                setState(() {
+                  _reliabilityMode = value;
                   _dirty = true;
                 });
               },
@@ -1834,10 +1880,14 @@ class _DetailsFormCard extends StatelessWidget {
     required this.keyController,
     required this.localPortController,
     required this.encryptKeyController,
+    required this.fecDataController,
+    required this.fecParityController,
     required this.mode,
     required this.onModeChanged,
     required this.encryptMode,
     required this.onEncryptModeChanged,
+    required this.reliabilityMode,
+    required this.onReliabilityModeChanged,
     required this.supportsProxyPerApp,
     required this.proxyPerAppPackages,
     required this.loadingProxyPerAppApps,
@@ -1851,10 +1901,14 @@ class _DetailsFormCard extends StatelessWidget {
   final TextEditingController keyController;
   final TextEditingController localPortController;
   final TextEditingController encryptKeyController;
+  final TextEditingController fecDataController;
+  final TextEditingController fecParityController;
   final TunnelMode mode;
   final ValueChanged<TunnelMode> onModeChanged;
   final String encryptMode;
   final ValueChanged<String> onEncryptModeChanged;
+  final ReliabilityMode reliabilityMode;
+  final ValueChanged<ReliabilityMode> onReliabilityModeChanged;
   final bool supportsProxyPerApp;
   final List<String> proxyPerAppPackages;
   final bool loadingProxyPerAppApps;
@@ -2027,6 +2081,85 @@ class _DetailsFormCard extends StatelessWidget {
                   return null;
                 },
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<ReliabilityMode>(
+                key: ValueKey(reliabilityMode),
+                initialValue: reliabilityMode,
+                decoration: const InputDecoration(
+                  labelText: 'Reliability',
+                  helperText:
+                      'FEC and KCP protect against packet loss on lossy '
+                      'links (satellite, airport wifi); the server must '
+                      'use the same setting',
+                  helperMaxLines: 2,
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: ReliabilityMode.none,
+                    child: Text('None'),
+                  ),
+                  DropdownMenuItem(
+                    value: ReliabilityMode.fec,
+                    child: Text('FEC (forward error correction)'),
+                  ),
+                  DropdownMenuItem(
+                    value: ReliabilityMode.kcp,
+                    child: Text('KCP (reliable ARQ transport)'),
+                  ),
+                ],
+                onChanged: readOnly
+                    ? null
+                    : (value) =>
+                          onReliabilityModeChanged(value ?? ReliabilityMode.none),
+              ),
+              if (reliabilityMode == ReliabilityMode.fec) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: fecDataController,
+                        enabled: !readOnly,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'FEC data shards',
+                        ),
+                        validator: (value) {
+                          if (reliabilityMode != ReliabilityMode.fec) {
+                            return null;
+                          }
+                          final parsed = int.tryParse(value?.trim() ?? '');
+                          if (parsed == null || parsed < 1) {
+                            return 'Must be ≥ 1';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: fecParityController,
+                        enabled: !readOnly,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'FEC parity shards',
+                        ),
+                        validator: (value) {
+                          if (reliabilityMode != ReliabilityMode.fec) {
+                            return null;
+                          }
+                          final parsed = int.tryParse(value?.trim() ?? '');
+                          if (parsed == null || parsed < 1) {
+                            return 'Must be ≥ 1';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: localPortController,

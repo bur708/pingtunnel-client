@@ -6,6 +6,8 @@ It lets you:
 - Manage multiple connections from one place.
 - Connect in Proxy or VPN mode.
 - Use optional encryption for the tunnel.
+- Protect the tunnel against packet loss on lossy links (satellite,
+  airport wifi) with optional FEC or KCP.
 
 ## Install
 
@@ -60,6 +62,16 @@ Encrypted sample URI:
 pingtunnel://example.com?encrypt=aes256&encrypt_key=encryption-key-here&mode=proxy&lport=1080
 ```
 
+Sample URI with FEC (server must use the same `-fec-data`/`-fec-parity`):
+```
+pingtunnel://example.com?key=123456&mode=proxy&lport=1080&reliability=fec&fec_data=10&fec_parity=3
+```
+
+Sample URI with KCP (server must also enable `-kcp`):
+```
+pingtunnel://example.com?key=123456&mode=proxy&lport=1080&reliability=kcp
+```
+
 ### Proxy vs VPN
 - **Proxy**: only apps using the local SOCKS proxy are tunneled.
 - **VPN**: routes system traffic through the tunnel.
@@ -70,6 +82,18 @@ In Proxy mode (Android and desktop), the client exposes one mixed local proxy po
 ### Encryption
 - If **Encryption** is **Off**: provide the **Key**.
 - If **Encryption** is **On**: provide the **Encrypt Key**.
+
+### Reliability (FEC / KCP)
+- **None**: default, matches plain pingtunnel behavior.
+- **FEC**: Reed-Solomon erasure coding recovers moderate, bursty packet
+  loss with no added latency; set **data shards** / **parity shards**
+  to match the server (defaults 10/3 tolerate losing up to 3 packets
+  per block of 13).
+- **KCP**: a full ARQ (automatic repeat request) transport; degrades
+  throughput under sustained loss instead of stalling, at the cost of
+  more background traffic than FEC.
+- FEC and KCP are alternatives, not combinable, and both sides of a
+  tunnel must pick the same one (or neither).
 
 ## Troubleshooting
 

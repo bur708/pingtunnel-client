@@ -14,7 +14,10 @@ data class TunnelConfig(
     val interfaceName: String?,
     val tunDevice: String?,
     val dns: String?,
-    val proxyPerAppPackages: List<String>
+    val proxyPerAppPackages: List<String>,
+    val reliabilityMode: String = "none",
+    val fecDataShards: Int = 10,
+    val fecParityShards: Int = 3
 ) {
     fun serverAddress(): String {
         return if (serverPort == null) serverHost else "$serverHost:$serverPort"
@@ -48,6 +51,10 @@ data class TunnelConfig(
                 ?.filter { it.isNotEmpty() }
                 ?.distinct()
                 ?: emptyList()
+            val reliabilityMode = map[Constants.EXTRA_RELIABILITY_MODE] as? String ?: "none"
+            val fecDataShards = (map[Constants.EXTRA_FEC_DATA_SHARDS] as? Number)?.toInt() ?: 10
+            val fecParityShards =
+                (map[Constants.EXTRA_FEC_PARITY_SHARDS] as? Number)?.toInt() ?: 3
 
             if (encryptMode.isNullOrBlank() && key == null) {
                 throw IllegalArgumentException("key missing")
@@ -64,7 +71,10 @@ data class TunnelConfig(
                 interfaceName = iface,
                 tunDevice = tun,
                 dns = dns,
-                proxyPerAppPackages = proxyPerAppPackages
+                proxyPerAppPackages = proxyPerAppPackages,
+                reliabilityMode = reliabilityMode,
+                fecDataShards = fecDataShards,
+                fecParityShards = fecParityShards
             )
         }
 
@@ -94,6 +104,18 @@ data class TunnelConfig(
                 ?.filter { it.isNotEmpty() }
                 ?.distinct()
                 ?: emptyList()
+            val reliabilityMode = intent.getStringExtra(Constants.EXTRA_RELIABILITY_MODE)
+                ?: "none"
+            val fecDataShards = if (intent.hasExtra(Constants.EXTRA_FEC_DATA_SHARDS)) {
+                intent.getIntExtra(Constants.EXTRA_FEC_DATA_SHARDS, 10)
+            } else {
+                10
+            }
+            val fecParityShards = if (intent.hasExtra(Constants.EXTRA_FEC_PARITY_SHARDS)) {
+                intent.getIntExtra(Constants.EXTRA_FEC_PARITY_SHARDS, 3)
+            } else {
+                3
+            }
 
             if (encryptMode.isNullOrBlank() && key == null) {
                 throw IllegalArgumentException("key missing")
@@ -110,7 +132,10 @@ data class TunnelConfig(
                 interfaceName = iface,
                 tunDevice = tun,
                 dns = dns,
-                proxyPerAppPackages = proxyPerAppPackages
+                proxyPerAppPackages = proxyPerAppPackages,
+                reliabilityMode = reliabilityMode,
+                fecDataShards = fecDataShards,
+                fecParityShards = fecParityShards
             )
         }
     }

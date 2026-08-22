@@ -18,4 +18,7 @@ object Constants {
     const val EXTRA_TUN = "tunDevice"
     const val EXTRA_DNS = "dns"
     const val EXTRA_PROXY_PER_APP_PACKAGES = "proxyPerAppPackages"
+    const val EXTRA_RELIABILITY_MODE = "reliabilityMode"
+    const val EXTRA_FEC_DATA_SHARDS = "fecDataShards"
+    const val EXTRA_FEC_PARITY_SHARDS = "fecParityShards"
 }
