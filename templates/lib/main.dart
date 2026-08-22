@@ -593,6 +593,24 @@ class _ConnectionListPageState extends State<ConnectionListPage>
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Opens the details form pre-filled with a blank draft, instead of
+  /// requiring the user to hand-type or paste a full pingtunnel:// URI.
+  /// The draft's placeholder URI never collides with a real one (it always
+  /// carries the current timestamp), and only becomes a real, saved entry
+  /// once the user fills in the form and taps Save - see _updateEntry's
+  /// index < 0 branch, which is what actually inserts it.
+  Future<void> _openNewConnectionDetails() async {
+    final draft = ConnectionEntry(
+      uri: 'pingtunnel://new-${DateTime.now().microsecondsSinceEpoch}',
+      config: TunnelConfig(
+        serverHost: '',
+        localSocksPort: 1080,
+        mode: TunnelMode.proxy,
+      ),
+    );
+    await _openDetails(draft);
+  }
+
   Future<void> _openDetails(ConnectionEntry entry) async {
     await Navigator.push(
       context,
@@ -632,6 +650,12 @@ class _ConnectionListPageState extends State<ConnectionListPage>
           : null;
       if (index >= 0) {
         _entries[index] = updated;
+      } else {
+        // original.id was never a real saved entry - this is a brand new
+        // connection (see _openNewConnectionDetails) being saved for the
+        // first time, so insert it rather than silently dropping it.
+        _entries.insert(0, updated);
+        _selectedId = updated.id;
       }
       if (duplicateId != null) {
         _entries.removeWhere((item) => item.id == duplicateId);
@@ -834,21 +858,19 @@ class _ConnectionListPageState extends State<ConnectionListPage>
             tooltip: 'Paste URI',
           ),
           IconButton(
-            onPressed: () async {
-              final result = await _showAddDialog();
-              if (result != null && result.isNotEmpty) {
-                _addEntryFromUri(result);
-              }
-            },
+            onPressed: _openNewConnectionDetails,
             icon: const Icon(Icons.add),
-            tooltip: 'Add URI',
+            tooltip: 'New connection',
           ),
         ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : entries.isEmpty
-          ? _EmptyState(onPaste: _addFromClipboard)
+          ? _EmptyState(
+              onNew: _openNewConnectionDetails,
+              onPaste: _addFromClipboard,
+            )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
               itemCount: entries.length,
@@ -974,8 +996,9 @@ class _ConnectionListPageState extends State<ConnectionListPage>
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onPaste});
+  const _EmptyState({required this.onNew, required this.onPaste});
 
+  final VoidCallback onNew;
   final VoidCallback onPaste;
 
   @override
@@ -995,11 +1018,17 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Paste a pingtunnel URI to get started.',
+              'Set up a new server, or paste a pingtunnel URI you already have.',
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onNew,
+              icon: const Icon(Icons.add),
+              label: const Text('New connection'),
+            ),
+            const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: onPaste,
               icon: const Icon(Icons.content_paste),
@@ -1641,7 +1670,7 @@ class _ConnectionDetailPageState extends State<ConnectionDetailPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_entry.title),
+          title: Text(_entry.title.isEmpty ? 'New connection' : _entry.title),
           actions: [
             IconButton(
               onPressed: _copyUri,
