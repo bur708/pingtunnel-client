@@ -2,7 +2,14 @@
 
 The `android-arm64` and `linux-amd64` binaries in this directory are
 built from https://github.com/bur708/pingtunnel (a fork of
-esrrhs/pingtunnel), commit `73a3d22570b8b3f471f86418ef0fcf40db49832f`.
+esrrhs/pingtunnel), commit `fc52c16642e230616431bad37decc07823d0bdc3`.
+
+That commit includes fixes from a security review: a SOCKS5
+authentication-bypass fix, CRLF/HTTP request-injection validation on
+forward-proxy target addresses, a much higher PBKDF2 iteration count
+for passphrase-derived encryption keys, and HMAC-SHA256 authentication
+of KCP segments (previously unauthenticated, letting an off-path
+attacker forge ACKs into an established session's retransmit state).
 
 That fork adds two optional, independent reliability layers on top of
 the standard pingtunnel ICMP tunnel protocol, both off by default and
