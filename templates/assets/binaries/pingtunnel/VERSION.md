@@ -2,7 +2,7 @@
 
 The `android-arm64` and `linux-amd64` binaries in this directory are
 built from https://github.com/bur708/pingtunnel (a fork of
-esrrhs/pingtunnel), commit `fc52c16642e230616431bad37decc07823d0bdc3`.
+esrrhs/pingtunnel), commit `1bc4747c07b081cc5bd8926bb861cacfba42788b`.
 
 That commit includes fixes from a security review: a SOCKS5
 authentication-bypass fix, CRLF/HTTP request-injection validation on
@@ -10,6 +10,14 @@ forward-proxy target addresses, a much higher PBKDF2 iteration count
 for passphrase-derived encryption keys, and HMAC-SHA256 authentication
 of KCP segments (previously unauthenticated, letting an off-path
 attacker forge ACKs into an established session's retransmit state).
+
+It also adds an adaptive server mode (server auto-matches each client's
+own -fec/-kcp/plain choice per connection when neither flag is pinned
+on the server) and raises the tcpmode connect-handshake timeout default
+from 5s to 15s (configurable via -connect-timeout) - the old 5s value
+was too tight when many connections open at once over the tunnel (e.g.
+a system-wide proxy client routing all apps' traffic), causing
+"can not connect remote tcp" even though the underlying dial succeeded.
 
 That fork adds two optional, independent reliability layers on top of
 the standard pingtunnel ICMP tunnel protocol, both off by default and
