@@ -2,7 +2,21 @@
 
 The `android-arm64` and `linux-amd64` binaries in this directory are
 built from https://github.com/bur708/pingtunnel (a fork of
-esrrhs/pingtunnel), commit `1bc4747c07b081cc5bd8926bb861cacfba42788b`.
+esrrhs/pingtunnel), commit `95dfbacc31d65f410569ecfde2c0bac4e7794b35`.
+
+That commit fixes a severe self-reflection packet flood: every server
+reply embeds a sentinel (Rproto=-1) meaning "this is a reply, not a
+request"; with no guard against receiving one back, a reply that
+looped back to the server's own raw socket (routine when client and
+server run on the same host, irrelevant to the real phone/Pi topology
+but exactly what today's testing kept doing) got reprocessed as a
+fresh ping and replied to again - and that reply's *wire* ICMP type
+was taken from the same poisoned -1, producing an invalid type that
+looped the same way. Result: an unbounded flood (1500+ packets/sec)
+that starved real traffic - a 10MB transfer that should take ~1-2s
+took 80+ seconds or failed outright. Fixed with one early check:
+drop any incoming packet whose Rproto is negative, since no real
+client ever sends one.
 
 That commit includes fixes from a security review: a SOCKS5
 authentication-bypass fix, CRLF/HTTP request-injection validation on
