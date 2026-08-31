@@ -615,6 +615,15 @@ class _ConnectionListPageState extends State<ConnectionListPage>
   }
 
   Future<void> _openDetails(ConnectionEntry entry) async {
+    // Tracks the entry's identity across repeated saves within a single
+    // details-page visit (e.g. Test connection, then edit again, then Save -
+    // each calls _applyEditsIfNeeded independently). ConnectionEntry.id is
+    // derived from its URI, which changes whenever a saved field changes, so
+    // once a save succeeds the *original* id no longer exists in _entries.
+    // Without updating this, the next save's _updateEntry lookup would miss
+    // and fall into the "brand new connection" insert branch, duplicating
+    // the entry instead of updating it in place.
+    var current = entry;
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -628,8 +637,10 @@ class _ConnectionListPageState extends State<ConnectionListPage>
             });
             _scheduleLinuxTrayRefresh();
           },
-          onSave: (updated, {showMessage = true}) =>
-              _updateEntry(entry, updated, showMessage: showMessage),
+          onSave: (updated, {showMessage = true}) {
+            _updateEntry(current, updated, showMessage: showMessage);
+            current = updated;
+          },
         ),
       ),
     );
