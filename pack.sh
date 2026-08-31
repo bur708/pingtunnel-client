@@ -15,8 +15,8 @@ Target selection is controlled with environment variables:
   BUILD_ANDROID   1|0|auto   Build Android APKs
   BUILD_LINUX     1|0|auto   Build Linux bundle and .deb/.rpm
   BUILD_WINDOWS   1|0|auto   Build Windows release bundle
-  FLUTTER_BUILD_NAME          Override Flutter --build-name (e.g. 0.6.0)
-  FLUTTER_BUILD_NUMBER        Override Flutter --build-number (e.g. 123)
+  PACK_BUILD_NAME          Override Flutter --build-name (e.g. 0.6.0)
+  PACK_BUILD_NUMBER        Override Flutter --build-number (e.g. 123)
   BUILD_GIT_SHA               Override embedded git commit hash
 
 Defaults:
@@ -94,18 +94,18 @@ if [[ "${VERSION}" == *"+"* ]]; then
   PUBSPEC_BUILD_NUMBER="${VERSION##*+}"
 fi
 
-BUILD_NAME="${FLUTTER_BUILD_NAME:-${PUBSPEC_BUILD_NAME}}"
-BUILD_NUMBER="${FLUTTER_BUILD_NUMBER:-${PUBSPEC_BUILD_NUMBER}}"
+BUILD_NAME="${PACK_BUILD_NAME:-${PUBSPEC_BUILD_NAME}}"
+BUILD_NUMBER="${PACK_BUILD_NUMBER:-${PUBSPEC_BUILD_NUMBER}}"
 VERSION="${BUILD_NAME}+${BUILD_NUMBER}"
 VERSION_TAG="${VERSION//+/-}"
 BUILD_GIT_SHA="${BUILD_GIT_SHA:-$(git -C "${ROOT_DIR}" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)}"
 
 FLUTTER_BUILD_ARGS=()
-if [[ -n "${FLUTTER_BUILD_NAME:-}" ]]; then
-  FLUTTER_BUILD_ARGS+=(--build-name "${FLUTTER_BUILD_NAME}")
+if [[ -n "${PACK_BUILD_NAME:-}" ]]; then
+  FLUTTER_BUILD_ARGS+=(--build-name "${PACK_BUILD_NAME}")
 fi
-if [[ -n "${FLUTTER_BUILD_NUMBER:-}" ]]; then
-  FLUTTER_BUILD_ARGS+=(--build-number "${FLUTTER_BUILD_NUMBER}")
+if [[ -n "${PACK_BUILD_NUMBER:-}" ]]; then
+  FLUTTER_BUILD_ARGS+=(--build-number "${PACK_BUILD_NUMBER}")
 fi
 DART_DEFINE_ARGS=(
   "--dart-define=APP_VERSION=${BUILD_NAME}"
