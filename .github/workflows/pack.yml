@@ -14,7 +14,6 @@ on:
 jobs:
   build:
     name: build-${{ matrix.target }}
-    if: ${{ matrix.target != 'android-ci' || !startsWith(github.ref, 'refs/tags/') }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -46,7 +45,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Java (Android)
-        if: matrix.target == 'android-ci'
+        if: matrix.target == 'android-ci' && !startsWith(github.ref, 'refs/tags/')
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -100,7 +99,7 @@ jobs:
           ./pack.sh
 
       - name: Build Android CI (debug, unsigned)
-        if: matrix.target == 'android-ci'
+        if: matrix.target == 'android-ci' && !startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
           chmod +x scripts/bootstrap_flutter.sh
