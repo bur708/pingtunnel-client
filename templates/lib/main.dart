@@ -19,6 +19,7 @@ const _buildVersionCode = String.fromEnvironment(
   defaultValue: '0',
 );
 const _buildGitSha = String.fromEnvironment('GIT_SHA', defaultValue: 'local');
+final _repoUri = Uri.parse('https://github.com/bur708/pingtunnel-client');
 
 String _shortGitSha(String value) =>
     value.length <= 8 ? value : value.substring(0, 8);
@@ -107,6 +108,7 @@ class _PingtunnelAppState extends State<PingtunnelApp> {
 
     return MaterialApp(
       title: 'Pingtunnel Client',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightScheme,
@@ -596,6 +598,88 @@ class _ConnectionListPageState extends State<ConnectionListPage>
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _openRepo() async {
+    final ok = await launchUrl(_repoUri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      _showMessage('Could not open browser');
+    }
+  }
+
+  void _openAbout() {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Pingtunnel Client'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _buildLabel,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'A client for the pingtunnel proxy/VPN: sends TCP/UDP '
+                  'traffic disguised as ICMP ping traffic.',
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Quick start',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '1. Add a connection: tap + to fill in a form, or paste a '
+                  'pingtunnel:// URI.\n'
+                  '2. Select it in the list, then tap Connect.\n'
+                  '3. Proxy mode only tunnels apps using the local SOCKS '
+                  'proxy; VPN mode routes all system traffic.\n'
+                  '4. Encryption, and FEC/KCP for lossy links, are optional '
+                  '- if set, they must match the server\'s settings.',
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: _openRepo,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.open_in_new,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'github.com/bur708/pingtunnel-client',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// Opens the details form pre-filled with a blank draft, instead of
   /// requiring the user to hand-type or paste a full pingtunnel:// URI.
   /// The draft's placeholder URI never collides with a real one (it always
@@ -875,6 +959,11 @@ class _ConnectionListPageState extends State<ConnectionListPage>
             onPressed: _openNewConnectionDetails,
             icon: const Icon(Icons.add),
             tooltip: 'New connection',
+          ),
+          IconButton(
+            onPressed: _openAbout,
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'About',
           ),
         ],
       ),
