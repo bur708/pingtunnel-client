@@ -648,7 +648,6 @@ class _ConnectionListPageState extends State<ConnectionListPage>
                 InkWell(
                   onTap: _openRepo,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.open_in_new,
@@ -656,11 +655,14 @@ class _ConnectionListPageState extends State<ConnectionListPage>
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        'github.com/bur708/pingtunnel-client',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          decoration: TextDecoration.underline,
+                      Flexible(
+                        child: Text(
+                          'github.com/bur708/pingtunnel-client',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
                       ),
                     ],
@@ -1917,41 +1919,38 @@ class _StatusCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final config = _statusConfig(status, colorScheme);
 
-    return SizedBox(
-      height: 72,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(config.icon, color: config.color),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      config.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(config.icon, color: config.color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    config.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    error?.isNotEmpty == true ? error! : config.subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      error?.isNotEmpty == true ? error! : config.subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              _StatusChip(isActive: true, status: status),
-            ],
-          ),
+            ),
+            _StatusChip(isActive: true, status: status),
+          ],
         ),
       ),
     );
