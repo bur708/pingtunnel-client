@@ -9,6 +9,28 @@ import java.io.InputStreamReader
 import kotlin.concurrent.thread
 
 object ProcessUtils {
+    // Flags whose following argument is a shared secret (numeric -key or an
+    // -encrypt-key passphrase) and must never reach logcat in cleartext -
+    // adb logcat is readable by any app/user with USB debugging enabled, no
+    // root required, so this is a real recovery path for the tunnel's key.
+    private val SECRET_FLAGS = setOf("-key", "-encrypt-key")
+
+    private fun redactedCommand(command: List<String>): String {
+        val out = StringBuilder()
+        var i = 0
+        while (i < command.size) {
+            if (out.isNotEmpty()) out.append(' ')
+            out.append(command[i])
+            if (command[i] in SECRET_FLAGS && i + 1 < command.size) {
+                out.append(" ***")
+                i += 2
+                continue
+            }
+            i++
+        }
+        return out.toString()
+    }
+
     private fun buildProcessBuilder(
         command: List<String>,
         workDir: File?,
@@ -30,7 +52,7 @@ object ProcessUtils {
         workDir: File? = null,
         env: Map<String, String>? = null
     ): Process {
-        Log.i(tag, "Starting: ${command.joinToString(" ")}")
+        Log.i(tag, "Starting: ${redactedCommand(command)}")
         val builder = buildProcessBuilder(command, workDir, env)
         val process = builder.start()
         streamLogs(tag, process)
@@ -44,7 +66,7 @@ object ProcessUtils {
         stdinFd: FileDescriptor? = null,
         env: Map<String, String>? = null
     ): Process {
-        Log.i(tag, "Starting: ${command.joinToString(" ")}")
+        Log.i(tag, "Starting: ${redactedCommand(command)}")
         val builder = buildProcessBuilder(command, workDir, env)
 
         var stdinDup: FileDescriptor? = null
