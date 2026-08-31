@@ -11,9 +11,11 @@ It lets you:
 
 ## Install
 
+Prebuilt packages for all platforms are on the [Releases page](https://github.com/bur708/pingtunnel-client/releases).
+
 ### Android (APK)
-1. Download the universal APK.
-2. Install it on your device.
+1. Download the APK from Releases.
+2. Install it on your device (allow "install from unknown sources" if prompted - this build isn't signed with a Play Store key).
 
 ### Debian/Ubuntu (.deb)
 ```bash
