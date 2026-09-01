@@ -454,7 +454,17 @@ static void my_application_init(MyApplication* self) {
 MyApplication* my_application_new() {
   g_set_prgname(APPLICATION_ID);
 
+  // G_APPLICATION_DEFAULT_FLAGS was only added in GLib 2.74; older GLib
+  // (e.g. Ubuntu 22.04's 2.72) only has G_APPLICATION_FLAGS_NONE, which is
+  // the same value G_APPLICATION_DEFAULT_FLAGS aliases on newer GLib - this
+  // keeps the build compatible with the oldest GLib we still target.
+#if GLIB_CHECK_VERSION(2, 74, 0)
+  GApplicationFlags application_flags = G_APPLICATION_DEFAULT_FLAGS;
+#else
+  GApplicationFlags application_flags = G_APPLICATION_FLAGS_NONE;
+#endif
+
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID, "flags",
-                                     G_APPLICATION_DEFAULT_FLAGS, nullptr));
+                                     application_flags, nullptr));
 }
