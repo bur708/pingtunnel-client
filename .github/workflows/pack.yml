@@ -26,7 +26,7 @@ jobs:
             build_windows: "0"
             artifact_paths: ""
           - target: linux
-            os: ubuntu-latest
+            os: ubuntu-22.04
             build_android: "0"
             build_linux: "1"
             build_windows: "0"
