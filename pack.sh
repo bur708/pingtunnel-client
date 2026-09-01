@@ -200,6 +200,23 @@ if [[ "${BUILD_LINUX}" == "1" ]]; then
   else
     echo "rpmbuild not found; skipping RPM."
   fi
+
+  echo "Building AppImage..."
+  BUILT_APPIMAGE=0
+  for flutter_arch in x64 arm64; do
+    case "${flutter_arch}" in
+      x64) arch="x86_64" ;;
+      arm64) arch="aarch64" ;;
+      *) continue ;;
+    esac
+    if [[ -d "${APP_DIR}/build/linux/${flutter_arch}/release/bundle" ]]; then
+      ARCH="${arch}" SKIP_BUILD=1 "${ROOT_DIR}/scripts/build_appimage.sh"
+      BUILT_APPIMAGE=$((BUILT_APPIMAGE + 1))
+    fi
+  done
+  if [[ "${BUILT_APPIMAGE}" -eq 0 ]]; then
+    SKIP_BUILD=1 "${ROOT_DIR}/scripts/build_appimage.sh"
+  fi
 fi
 
 if [[ "${BUILD_WINDOWS}" == "1" ]]; then
